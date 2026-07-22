@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'none'; connect-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
-<title>OAuth Callback</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-uaQLWeotywDBiir7ChsptZ1yFuy3oOECpR7Zqnch3ZQ='; style-src 'sha256-LcgVlHViaXWPw5cUwG82xTP6hMXiyeOj+8qckRekB/0='; img-src 'none'; connect-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
+<title>Authorisation code</title>
 <style>
   body {
     font-family: -apple-system, "Segoe UI", Arial, sans-serif;
@@ -44,10 +44,10 @@
 </style>
 </head>
 <body>
-  <h1>Employment Hero authorisation callback</h1>
+  <h1>Authorisation code</h1>
 
   <div id="has-code">
-    <p>Copy this authorisation code and paste it into the terminal that's waiting for it. This page never sends it anywhere, it only reads it from the URL you were just redirected to.</p>
+    <p>Copy this code and paste it into the terminal that's waiting for it. This page never sends it anywhere, it only reads it from the URL you were just redirected to.</p>
     <p class="code-box" id="code-display"></p>
     <button id="copy-btn" type="button">Copy code</button>
     <p class="warn">This code is single-use and expires quickly. Once you've pasted it into the terminal, you can close this tab. The address bar has already been cleared of the code for your privacy.</p>
@@ -60,6 +60,15 @@
   <script>
     (function () {
       "use strict";
+
+      // Defense-in-depth against clickjacking: this host (GitHub Pages) can't set the
+      // frame-ancestors CSP directive or X-Frame-Options as a real HTTP header (a meta
+      // tag cannot enforce frame-ancestors, browsers require a header), so bust out of
+      // any frame this page is loaded into as a fallback mitigation.
+      if (window.top !== window.self) {
+        window.top.location = window.self.location;
+        return;
+      }
 
       var params = new URLSearchParams(window.location.search);
       var code = params.get("code");
