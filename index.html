@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'none'; connect-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
+<title>OAuth Callback</title>
+<style>
+  body {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    max-width: 40rem;
+    margin: 3rem auto;
+    padding: 0 1.25rem;
+    color: #1a1a1a;
+    background: #fff;
+  }
+  h1 { font-size: 1.15rem; }
+  .code-box {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 0.95rem;
+    padding: 0.9rem;
+    background: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    word-break: break-all;
+    user-select: all;
+  }
+  .warn {
+    background: #fff8e1;
+    border: 1px solid #e0c36a;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+  button {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <h1>Employment Hero authorisation callback</h1>
+
+  <div id="has-code">
+    <p>Copy this authorisation code and paste it into the terminal that's waiting for it. This page never sends it anywhere, it only reads it from the URL you were just redirected to.</p>
+    <p class="code-box" id="code-display"></p>
+    <button id="copy-btn" type="button">Copy code</button>
+    <p class="warn">This code is single-use and expires quickly. Once you've pasted it into the terminal, you can close this tab. The address bar has already been cleared of the code for your privacy.</p>
+  </div>
+
+  <div id="no-code" class="hidden">
+    <p>No authorisation code was found in this page's URL. If you were expecting one, the authorisation attempt may have failed, check the terminal for an error instead.</p>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var params = new URLSearchParams(window.location.search);
+      var code = params.get("code");
+      var error = params.get("error");
+
+      // Strip the query string from the visible URL and browser history immediately,
+      // so the code doesn't linger in history/autocomplete after this point.
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      var hasCodeEl = document.getElementById("has-code");
+      var noCodeEl = document.getElementById("no-code");
+      var display = document.getElementById("code-display");
+      var copyBtn = document.getElementById("copy-btn");
+
+      if (code) {
+        display.textContent = code;
+        copyBtn.addEventListener("click", function () {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(function () {
+              copyBtn.textContent = "Copied";
+            });
+          }
+        });
+      } else {
+        hasCodeEl.classList.add("hidden");
+        noCodeEl.classList.remove("hidden");
+        if (error) {
+          var errEl = document.createElement("p");
+          errEl.className = "code-box";
+          errEl.textContent = "error=" + error;
+          noCodeEl.appendChild(errEl);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
