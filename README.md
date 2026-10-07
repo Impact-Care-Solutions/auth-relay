@@ -1,6 +1,6 @@
 # auth-relay
 
-A single static page, hosted via GitHub Pages, used as an OAuth 2.0 redirect URI for an internal script that has no public endpoint of its own.
+A single static page, hosted on Cloudflare Pages, used as an OAuth 2.0 redirect URI for an internal script that has no public endpoint of its own.
 
 ## Why this exists
 
@@ -19,16 +19,17 @@ Deliberately generic: this repo and page name, and everything in them, avoid nam
 
 - **No network calls of any kind.** The code is read from the URL and displayed, it is never sent anywhere, there is no server-side logic, no analytics, no external resources.
 - **No external dependencies.** No CDN scripts, no fonts, no images, everything needed is inline in `index.html`.
-- **Content-Security-Policy** via `<meta>`: `default-src 'none'`, inline script/style locked to their exact SHA-256 hash (not `'unsafe-inline'`), no images, no outbound connections, no base/form actions.
+- **Content-Security-Policy** as a real response header from `_headers`, repeated in a `<meta>` tag: `default-src 'none'`, inline script/style locked to their exact SHA-256 hash (not `'unsafe-inline'`), no images, no outbound connections, no base/form actions.
 - **`noindex, nofollow`** meta tag, plus a `robots.txt` disallowing all crawling, so this page is never indexed.
 - **`Referrer-Policy: no-referrer`** so the URL (and any code in it) is never leaked via a Referer header, even though no outbound requests exist to leak it through.
-- **JS-based frame-busting** (`if (window.top !== window.self) { ... }`). GitHub Pages cannot set real HTTP response headers, so `X-Frame-Options`/CSP `frame-ancestors` (framing/clickjacking protection) cannot be enforced here, a `<meta>` tag is explicitly ignored by browsers for that directive. This script-based check is a best-effort fallback, not equivalent to a real header. If stronger, properly-enforced header-level protection is ever needed, move this to a host that supports custom response headers (e.g. Cloudflare Pages), GitHub Pages fundamentally can't do it.
+- **Clickjacking protection by real headers.** `_headers` sets `X-Frame-Options: DENY` and CSP `frame-ancestors 'none'`, which browsers enforce. The page moved from GitHub Pages to Cloudflare Pages for this reason: GitHub Pages cannot set response headers, and browsers ignore `frame-ancestors` in a `<meta>` tag. The JS frame-busting check (`if (window.top !== window.self) { ... }`) stays as a fallback. Its code comment still names GitHub Pages; that comment is inside the hashed script, so it is left as is rather than changing the hash for a comment.
+- **Other headers from `_headers`:** `X-Content-Type-Options: nosniff`, a restrictive `Permissions-Policy`, `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy: same-origin`.
 - **The code is stripped from the visible URL and browser history** via `history.replaceState` immediately on page load, so it doesn't linger in browser autocomplete/history after the page renders.
 - **Nothing sensitive is stored.** No cookies, no localStorage/sessionStorage.
-- This repo is public (GitHub Pages on this org's plan requires it), but contains no secrets, credentials, or identifying details of what it's used for. The only sensitive value that ever touches this page (a short-lived, single-use OAuth authorisation code) exists only transiently in the visiting browser's memory, never in this repo's contents.
+- This repo is public, and **every file in it is served at the page's origin**, including this README. It contains no secrets, credentials, or identifying details of what it's used for. The only sensitive value that ever touches this page (a short-lived, single-use OAuth authorisation code) exists only transiently in the visiting browser's memory, never in this repo's contents.
 
 ## Maintenance
 
 This is a one-file utility, there should be no reason to add dependencies, a build step, or server-side code. If a change ever seems to need those, reconsider whether this is still the right approach, per the security posture above.
 
-If `index.html`'s inline `<script>` or `<style>` content changes, the CSP hashes in the `<meta>` tag must be regenerated (SHA-256 of the exact element content, base64-encoded), a mismatched hash will cause the browser to silently block the script/style entirely.
+If `index.html`'s inline `<script>` or `<style>` content changes, the CSP hashes must be regenerated (SHA-256 of the exact element content, base64-encoded) and updated in **both** the `<meta>` tag and `_headers`. A mismatched hash will cause the browser to silently block the script/style entirely.
